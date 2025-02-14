@@ -1,0 +1,10 @@
+(unit MM)
+
+(package "TL431AIZT"
+    (type UNDEF)
+    (uver 2)
+    (mountForm default
+        (footprintRef "TL431AIZT")
+        (spec "default")
+    )
+)

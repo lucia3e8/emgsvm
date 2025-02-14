@@ -1,0 +1,16 @@
+.INA128PA :1 ;Instrumentation amplifier,INA128PA DIP8 Texas Instruments INA128PA Instrumentation Amplifier, 125uV Offset 1.3MHz GBW, CMMR 73dB, 8-Pin PDIP
+DIP794W53P254L959H508Q8N
+*STM IC
+*NGS
+*PLB 1="RG_1" 2="VIN-" 3="VIN+" 4="V-" 5="REF" 6="VO" 7="V+" 8="RG_2"
+*MXP 8
+*DFN INA128PA
+~!Mouser Part Number (595-INA128PA)
+~!Link Mouser Price/Stock (https://www.mouser.co.uk/ProductDetail/Texas-Instruments/INA128PA?qs=VBduBm9rCJQJnrDRwX514g%3D%3D)
+~!Manufacturer_Name (Texas Instruments)
+~!Manufacturer_Part_Number (INA128PA)
+~!Link Datasheet (http://www.ti.com/lit/ds/symlink/ina128.pdf)
+~!Height (5.08mm)
+~!3D_Model (INA128PA)
+INA128PA
+1.1!U 2.1!U 3.1!U 4.1!U 8.1!U 7.1!U 6.1!U 5.1!U 

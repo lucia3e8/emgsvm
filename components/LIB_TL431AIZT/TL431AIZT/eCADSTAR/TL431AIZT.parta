@@ -1,0 +1,70 @@
+(Japanese_coding: sjis)
+(function "ECS_425195"
+    (uver 1)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (ctime 2022-02-22-09:34:50)
+    (utime 2024-09-16-12:00:16)
+    (interface
+        (port "1" (symbPinId 1) (portType INOUT))
+        (port "2" (symbPinId 2) (portType INOUT))
+        (port "3" (symbPinId 3) (portType INOUT))
+    )
+    (property "symbolName" "TL431AIZT")
+)
+
+
+(pinAssign "ECS_425195"
+    (uver 1)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (ctime 2022-02-22-09:34:50)
+    (utime 2024-09-16-12:00:16)
+    (interface
+        (port "1" (symbPinId 1) (portName "REF") (portType INOUT))
+        (port "2" (symbPinId 2) (portName "A") (portType INOUT))
+        (port "3" (symbPinId 3) (portName "K") (portType INOUT))
+    )
+    (internal
+        (funcInst (functionRef "ECS_425195")
+                (port "1" (match "1"))
+                (port "2" (match "2"))
+                (port "3" (match "3"))
+        )
+    )
+    (property "usePowerBox" "No")
+    (property "symbolName" "TL431AIZT")
+)
+
+
+(part "TL431AIZT"
+    (uver 1)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (ctime 2022-02-22-09:34:50)
+    (utime 2024-09-16-12:00:16)
+    (packageRef "TL431AIZT")
+    (pinAssignRef "ECS_425195")
+    (interface
+        (port "1" (symbPinId 1) (portName "REF") (portType INOUT))
+        (port "2" (symbPinId 2) (portName "A") (portType INOUT))
+        (port "3" (symbPinId 3) (portName "K") (portType INOUT))
+    )
+    (partClass UNDEF)
+    (useInSchema Y)
+    (useInLayout Y)
+    (inPartsList Y)
+    (partType NORMAL)
+    (placeRestriction FREE)
+    (property "enetNonSeries" "YES")
+    (property "refDesPrefix" "IC")
+    (property "description" "STMicroelectronics TL431AIZT, Adjustable Shunt Voltage Reference 2.495 - 36V, 1%, 3-Pin TO-92")
+    (property "Mouser_Part_Number" "511-TL431AIZT")
+    (property "Mouser_Price/Stock" "https://www.mouser.co.uk/ProductDetail/STMicroelectronics/TL431AIZT?qs=20udIUkWrRCrfnM%252B1h%252BEdg%3D%3D")
+    (property "Manufacturer_Name" "STMicroelectronics")
+    (property "Manufacturer_Part_Number" "TL431AIZT")
+    (property "Datasheet_Link" "https://www.st.com/resource/en/datasheet/tl431.pdf")
+    (property "compAreaTopHeight" 4.4)
+)
+
+

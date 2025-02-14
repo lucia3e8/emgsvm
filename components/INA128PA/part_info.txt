@@ -1,0 +1,9 @@
+Manufacturer=Texas Instruments
+PartNumber=INA128PA
+PartCategory=Integrated Circuit
+PackageCategory=Dual-In-Line Packages
+PinCount=8
+Version=3.4
+Released=2021-01-28 05:11:05
+Downloaded=2025-02-11 01:18:32
+3D=Y

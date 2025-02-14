@@ -1,0 +1,16 @@
+.TL431AIZT :1 ;STMicroelectronics TL431AIZT, Adjustable Shunt Voltage Reference 2.495 - 36V, 1%, 3-Pin TO-92
+TL431AIZT
+*STM IC
+*NGS
+*PLB 1="REF" 2="A" 3="K"
+*MXP 3
+*DFN TL431AIZT
+~!Mouser Part Number (511-TL431AIZT)
+~!Link Mouser Price/Stock (https://www.mouser.co.uk/ProductDetail/STMicroelectronics/TL431AIZT?qs=20udIUkWrRCrfnM%252B1h%252BEdg%3D%3D)
+~!Manufacturer_Name (STMicroelectronics)
+~!Manufacturer_Part_Number (TL431AIZT)
+~!Link Datasheet (https://www.st.com/resource/en/datasheet/tl431.pdf)
+~!Height (4.4mm)
+~!3D_Model (TL431AIZT)
+TL431AIZT
+1.1!U 2.1!U 3.1!U 

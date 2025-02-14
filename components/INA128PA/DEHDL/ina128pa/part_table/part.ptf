@@ -1,0 +1,11 @@
+FILE_TYPE = MULTI_PHYS_TABLE;
+
+PART 'INA128PA'
+CLASS = IC
+{========================================================================================}
+:"MANUFACTURER_NAME", "MANUFACTURER_PART_NUMBER"= "PART_NUMBER", "JEDEC_TYPE", "PACK_TYPE", "MOUSER_PART_NUMBER", "MOUSER_PRICE/STOCK", "DESCRIPTION", "DATASHEET", "HEIGHT";
+{========================================================================================}
+ "Texas Instruments", "INA128PA" (!) = "", "DIP794W53P254L959H508Q8N", "Dual-In-Line Packages", "595-INA128PA", "https://www.mouser.co.uk/ProductDetail/Texas-Instruments/INA128PA?qs=VBduBm9rCJQJnrDRwX514g%3D%3D", "Instrumentation amplifier,INA128PA DIP8 Texas Instruments INA128PA Instrumentation Amplifier, 125uV Offset 1.3MHz GBW, CMMR 73dB, 8-Pin PDIP", "http://www.ti.com/lit/ds/symlink/ina128.pdf", "5.08 mm"
+END_PART
+
+END.

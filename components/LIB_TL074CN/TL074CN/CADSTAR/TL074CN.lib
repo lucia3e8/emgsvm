@@ -1,0 +1,16 @@
+.TL074CN :1 ;Quad Low-Noise JFET-Input General-Purpose Operational Amplifier
+DIP794W53P254L1930H508Q14N
+*STM IC
+*NGS
+*PLB 1="1OUT" 2="1IN-" 3="1IN+" 4="VCC+" 5="2IN+" 6="2IN-" 7="2OUT" 8="3OUT" 9="3IN-" 10="3IN+" 11="VCC-" 12="4IN+" 13="4IN-" 14="4OUT"
+*MXP 14
+*DFN TL074CN
+~!Mouser Part Number (595-TL074CN)
+~!Link Mouser Price/Stock (https://www.mouser.co.uk/ProductDetail/Texas-Instruments/TL074CN?qs=AMJt07B76uv7dLYnj7iLiQ%3D%3D)
+~!Manufacturer_Name (Texas Instruments)
+~!Manufacturer_Part_Number (TL074CN)
+~!Link Datasheet (-)
+~!Height (5.08mm)
+~!3D_Model (TL074CN)
+TL074CN
+1.1!U 2.1!U 3.1!U 4.1!U 5.1!U 6.1!U 7.1!U 14.1!U 13.1!U 12.1!U 11.1!U 10.1!U 9.1!U 8.1!U 

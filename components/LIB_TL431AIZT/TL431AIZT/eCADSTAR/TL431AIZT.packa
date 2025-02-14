@@ -1,0 +1,13 @@
+(unit MM)
+
+(package "TL431AIZT"
+    (type UNDEF)
+    (uver 2)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (utime 2024-09-16-12:00:16)
+    (mountForm default
+        (footprintRef "TL431AIZT")
+        (spec "System")
+    )
+)

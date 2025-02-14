@@ -1,0 +1,9 @@
+Manufacturer=Texas Instruments
+PartNumber=TL074CN
+PartCategory=Integrated Circuit
+PackageCategory=Dual-In-Line Packages
+PinCount=14
+Version=4.4
+Released=2016-11-29 14:18:05
+Downloaded=2025-02-11 01:22:13
+3D=Y
