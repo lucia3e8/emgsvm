@@ -1,1 +1,5 @@
 svm-backups
+.DS_Store
+.ipynb_checkpoints
+fp-info-cache
+outputs
