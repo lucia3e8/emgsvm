@@ -416,7 +416,7 @@
       "no_connect_dangling": "warning",
       "pin_not_connected": "error",
       "pin_not_driven": "error",
-      "pin_to_pin": "warning",
+      "pin_to_pin": "error",
       "power_pin_not_driven": "error",
       "similar_labels": "warning",
       "simulation_model_issue": "ignore",
@@ -470,7 +470,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "/Users/bmc/sources/emgsvm/outputs/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",
@@ -590,10 +590,6 @@
     [
       "9373b363-f2a0-4299-a239-8e4494a3a203",
       "Root"
-    ],
-    [
-      "87095162-3428-4ebb-af20-99ff04858855",
-      "sim"
     ]
   ],
   "text_variables": {}
