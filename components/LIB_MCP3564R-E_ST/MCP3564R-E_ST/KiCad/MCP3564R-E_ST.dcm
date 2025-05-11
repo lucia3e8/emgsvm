@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP MCP3564R-E_ST
+D Analog to Digital Converters - ADC 24-bit delta-sigma ADC w/Vref, Quad channel, 3V
+K
+F https://www.arrow.com/en/products/mcp3564r-est/microchip-technology
+$ENDCMP
+#
+#End Doc Library

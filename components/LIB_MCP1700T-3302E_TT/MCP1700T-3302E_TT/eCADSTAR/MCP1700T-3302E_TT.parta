@@ -1,0 +1,70 @@
+(Japanese_coding: sjis)
+(function "ECS_158898"
+    (uver 1)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (ctime 2015-04-16-09:48:08)
+    (utime 2023-03-07-16:10:32)
+    (interface
+        (port "1" (symbPinId 1) (portType INOUT))
+        (port "2" (symbPinId 2) (portType INOUT))
+        (port "3" (symbPinId 3) (portType INOUT))
+    )
+    (property "symbolName" "MCP1700T-3302E_TT")
+)
+
+
+(pinAssign "ECS_158898"
+    (uver 1)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (ctime 2015-04-16-09:48:08)
+    (utime 2023-03-07-16:10:32)
+    (interface
+        (port "1" (symbPinId 1) (portName "GND") (portType INOUT))
+        (port "2" (symbPinId 2) (portName "VOUT") (portType INOUT))
+        (port "3" (symbPinId 3) (portName "VIN") (portType INOUT))
+    )
+    (internal
+        (funcInst (functionRef "ECS_158898")
+                (port "1" (match "1"))
+                (port "2" (match "2"))
+                (port "3" (match "3"))
+        )
+    )
+    (property "usePowerBox" "No")
+    (property "symbolName" "MCP1700T-3302E_TT")
+)
+
+
+(part "MCP1700T-3302E_TT"
+    (uver 1)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (ctime 2015-04-16-09:48:08)
+    (utime 2023-03-07-16:10:32)
+    (packageRef "MCP1700T-3302E_TT")
+    (pinAssignRef "ECS_158898")
+    (interface
+        (port "1" (symbPinId 1) (portName "GND") (portType INOUT))
+        (port "2" (symbPinId 2) (portName "VOUT") (portType INOUT))
+        (port "3" (symbPinId 3) (portName "VIN") (portType INOUT))
+    )
+    (partClass UNDEF)
+    (useInSchema Y)
+    (useInLayout Y)
+    (inPartsList Y)
+    (partType NORMAL)
+    (placeRestriction FREE)
+    (property "enetNonSeries" "YES")
+    (property "refDesPrefix" "IC")
+    (property "description" "LDO voltage regulator 250mA Isupply 1uA")
+    (property "Mouser_Part_Number" "579-MCP1700T3302E/TT")
+    (property "Mouser_Price/Stock" "https://www.mouser.co.uk/ProductDetail/Microchip-Technology/MCP1700T-3302E-TT?qs=fM4xO01eazPmCNDrdHEdaw%3D%3D")
+    (property "Manufacturer_Name" "Microchip")
+    (property "Manufacturer_Part_Number" "MCP1700T-3302E/TT")
+    (property "Datasheet_Link" "https://datasheet.datasheetarchive.com/originals/distributors/SFDatasheet-4/sf-00090030.pdf")
+    (property "compAreaTopHeight" 1.12)
+)
+
+

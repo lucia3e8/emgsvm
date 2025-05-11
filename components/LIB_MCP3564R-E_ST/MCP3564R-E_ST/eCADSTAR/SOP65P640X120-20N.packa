@@ -1,0 +1,13 @@
+(unit MM)
+
+(package "MCP3564R-E_ST"
+    (type UNDEF)
+    (uver 2)
+    (cuser "SamacSys")
+    (uuser "SamacSys")
+    (utime 2020-08-24-15:29:38)
+    (mountForm default
+        (footprintRef "SOP65P640X120-20N")
+        (spec "System")
+    )
+)

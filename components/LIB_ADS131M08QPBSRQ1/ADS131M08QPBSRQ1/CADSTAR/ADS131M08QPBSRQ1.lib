@@ -1,0 +1,16 @@
+.ADS131M08QPBSRQ1 :1 ;Analog to Digital Converters - ADC Automotive, eight-channel, 24-bit, 32-kSPS, simultaneous-sampling, delta-sigma ADC
+QFP50P700X700X120-32N
+*STM IC
+*NGS
+*PLB 1="AIN2P" 2="AIN2N" 3="AIN3N" 4="AIN3P" 5="AIN4P" 6="AIN4N" 7="AIN5N" 8="AIN5P" 9="AIN6P" 10="AIN6N" 11="AIN7N" 12="AIN7P" 13="AGND_1" 14="REFIN" 15="AVDD" 16="'SYNC'/'RESET'" 17="'CS'" 18="'DRDY'" 19="SCLK" 20="DOUT" 21="DIN" 22="XTAL2" 23="XTAL1/CLKIN" 24="CAP" 25="DGND" 26="DVDD" 27="NC" 28="AGND_2" 29="AIN0P" 30="AIN0N" 31="AIN1N" 32="AIN1P"
+*MXP 32
+*DFN ADS131M08QPBSRQ1
+~!Mouser Part Number (595-ADS131M08QPBSRQ1)
+~!Link Mouser Price/Stock (https://www.mouser.co.uk/ProductDetail/Texas-Instruments/ADS131M08QPBSRQ1?qs=By6Nw2ByBD1kYCTLuI53zA%3D%3D)
+~!Manufacturer_Name (Texas Instruments)
+~!Manufacturer_Part_Number (ADS131M08QPBSRQ1)
+~!Link Datasheet (https://www.ti.com/lit/ds/symlink/ads131m08-q1.pdf?HQS=dis-mous-null-mousermode-dsf-pf-null-wwe&ts=1673864581738&ref_url=https%253A%252F%252Fwww.ti.com%252Fgeneral%252Fdocs%252Fsuppproductinfo.tsp%253FdistId%253D26%2526gotoUrl%253Dhttps%253A%252F%252Fwww.)
+~!Height (1.2mm)
+~!3D_Model (ADS131M08QPBSRQ1)
+ADS131M08QPBSRQ1
+1.1!U 2.1!U 3.1!U 4.1!U 5.1!U 6.1!U 7.1!U 8.1!U 9.1!U 10.1!U 11.1!U 12.1!U 13.1!U 14.1!U 15.1!U 16.1!U 24.1!U 23.1!U 22.1!U 21.1!U 20.1!U 19.1!U 18.1!U 17.1!U 32.1!U 31.1!U 30.1!U 29.1!U 28.1!U 27.1!U 26.1!U 25.1!U 

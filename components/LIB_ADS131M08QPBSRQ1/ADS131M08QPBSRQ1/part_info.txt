@@ -1,0 +1,9 @@
+Manufacturer=Texas Instruments
+PartNumber=ADS131M08QPBSRQ1
+PartCategory=Integrated Circuit
+PackageCategory=Quad Flat Packages
+PinCount=32
+Version=1.1
+Released=2023-01-17 03:16:17
+Downloaded=2025-04-11 06:54:11
+3D=Y

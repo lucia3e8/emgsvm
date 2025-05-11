@@ -1,0 +1,9 @@
+Manufacturer=Microchip
+PartNumber=MCP3564R-E/ST
+PartCategory=Integrated Circuit
+PackageCategory=Small Outline Packages
+PinCount=20
+Version=1.1
+Released=2021-04-15 09:37:58
+Downloaded=2025-04-10 16:25:48
+3D=Y

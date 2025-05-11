@@ -1,0 +1,16 @@
+.MCP3564R-E_ST :1 ;Analog to Digital Converters - ADC 24-bit delta-sigma ADC w/Vref, Quad channel, 3V
+SOP65P640X120-20N
+*STM IC
+*NGS
+*PLB 1="AVDD" 2="AGND" 3="REFIN-" 4="REFIN+" 5="CH0" 6="CH1" 7="CH2" 8="CH3" 9="CH4" 10="CH5" 11="CH6" 12="CH7" 13="'CS'" 14="SCK" 15="SDI" 16="SDO" 17="'IRQ'/MDAT" 18="MCLKIN" 19="DGND" 20="DVDD"
+*MXP 20
+*DFN MCP3564R-E_ST
+~!Mouser Part Number (579-MCP3564R-E/ST)
+~!Link Mouser Price/Stock (https://www.mouser.co.uk/ProductDetail/Microchip-Technology/MCP3564R-E-ST?qs=W%2FMpXkg%252BdQ5306714eyQ8g%3D%3D)
+~!Manufacturer_Name (Microchip)
+~!Manufacturer_Part_Number (MCP3564R-E/ST)
+~!Link Datasheet (https://www.arrow.com/en/products/mcp3564r-est/microchip-technology)
+~!Height (1.2mm)
+~!3D_Model (MCP3564R-E_ST)
+MCP3564R-E_ST
+1.1!U 2.1!U 3.1!U 4.1!U 5.1!U 6.1!U 7.1!U 8.1!U 9.1!U 10.1!U 20.1!U 19.1!U 18.1!U 17.1!U 16.1!U 15.1!U 14.1!U 13.1!U 12.1!U 11.1!U 

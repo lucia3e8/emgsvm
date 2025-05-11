@@ -1,0 +1,16 @@
+.MCP1700T-3302E_TT :1 ;LDO voltage regulator 250mA Isupply 1uA
+SOT95P237X112-3N
+*STM IC
+*NGS
+*PLB 1="GND" 2="VOUT" 3="VIN"
+*MXP 3
+*DFN MCP1700T-3302E_TT
+~!Mouser Part Number (579-MCP1700T3302E/TT)
+~!Link Mouser Price/Stock (https://www.mouser.co.uk/ProductDetail/Microchip-Technology/MCP1700T-3302E-TT?qs=fM4xO01eazPmCNDrdHEdaw%3D%3D)
+~!Manufacturer_Name (Microchip)
+~!Manufacturer_Part_Number (MCP1700T-3302E/TT)
+~!Link Datasheet (https://datasheet.datasheetarchive.com/originals/distributors/SFDatasheet-4/sf-00090030.pdf)
+~!Height (1.12mm)
+~!3D_Model (MCP1700T-3302E_TT)
+MCP1700T-3302E_TT
+1.1!U 2.1!U 3.1!U 

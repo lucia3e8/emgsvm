@@ -1,0 +1,9 @@
+Manufacturer=Microchip
+PartNumber=MCP1700T-3302E/TT
+PartCategory=Integrated Circuit
+PackageCategory=SOT23 (3-Pin)
+PinCount=3
+Version=5.1
+Released=2015-04-16 09:48:08
+Downloaded=2025-04-11 05:55:17
+3D=Y
