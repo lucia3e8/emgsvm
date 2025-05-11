@@ -3,3 +3,4 @@ svm-backups
 .ipynb_checkpoints
 fp-info-cache
 outputs
+adc/sw/target
