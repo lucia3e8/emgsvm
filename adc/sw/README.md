@@ -9,8 +9,11 @@ DRDY -> 9
 CS -> 10 (CS)
 DIN -> 11 (MOSI)
 DOUT -> 12 (MISO)
-SCLK -> 27 (SCK1)
+SCLK -> 13 (SCK)
 CLKIN -> 23
+
+I made a silly mistake in PCB design and pin 13 is connected to 27
+You have to leave 27 floating
 
 ## build and flash
 
