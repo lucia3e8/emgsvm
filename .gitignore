@@ -4,3 +4,4 @@ svm-backups
 fp-info-cache
 outputs
 adc/sw/target
+adc/sw/*.hex
