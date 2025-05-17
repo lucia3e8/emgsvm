@@ -18,6 +18,8 @@ teensy4-pins = "0.3.2"
 embedded-io = "0.6.1"
 defmt = "1.0.1"
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+data-encoding = { version = "2.9.0", default-features = false }
+arrayvec = { version = "0.7.6", default-features = false }
 
 [dependencies.teensy4-bsp]
 version = "0.5"

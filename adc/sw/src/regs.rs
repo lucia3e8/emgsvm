@@ -11,7 +11,11 @@ pub struct Status {
 }
 
 impl Status {
-    pub fn from_word(word: u16) -> Self {
+    // only reads first 2 bytes
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        assert!(bytes.len() >= 2, "gimme at least 2 bytes, peasant");
+        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+
         Self {
             lock:      (word & (1 << 15)) != 0,
             f_resync:  (word & (1 << 14)) != 0,

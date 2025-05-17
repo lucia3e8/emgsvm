@@ -13,6 +13,7 @@ use bsp::hal::{
     timer::BlockingPit,
     flexpwm::{Channel, Output, PairOperation, Prescaler, Submodule, FULL_RELOAD_VALUE_REGISTER},
     iomuxc::consts::*,
+    gpt::ClockSource,
 };
 use bsp::ral;
 
@@ -23,7 +24,7 @@ use cortex_m::prelude::_embedded_hal_blocking_spi_Transfer;
 
 mod regs;
 
-const FRAME_LEN:usize = 15;
+const FRAME_LEN:usize = 30;
 fn initialize_logger() -> Option<imxrt_log::Poller> {
     // logging
     let usb_instances = bsp::hal::usbd::Instances {
@@ -50,15 +51,11 @@ fn USB_OTG1() {
     }
 }
 
-fn extract_data(words: &[u16]) -> [i32; 8] {
-    assert_eq!(words.len(), 15, "i will *end* you if this isn’t 15");
-
-    let mut bytes = [0u8; 30];
-    for (chunk, &word) in bytes.chunks_exact_mut(2).zip(words) {
-        chunk[0] = (word >> 8) as u8;
-        chunk[1] = word as u8;
-    }
-
+// ads131 uses 24 bit "words"
+// 10 of those to a frame = 240 bits aka 30 u8s
+// this discards the first and last 24 bits (status and CRC)
+// then converts the remaining 8 into i32s (smallest type that fits 24 bits)
+fn chop_bits(bytes: &[u8; 30]) -> [i32; 8] {
     let mut out = [0i32; 8];
     for (i, slot) in out.iter_mut().enumerate() {
         let bit_offset = 24 + i * 24;
@@ -85,6 +82,32 @@ fn extract_data(words: &[u16]) -> [i32; 8] {
 }
 
 
+// "pc frames" are the frames that go to your pc
+// as opposed to the frame we're receiving from the ADC
+#[inline(always)]
+fn mk_pc_frame(status: u8, micros: u32, data: &[i32; 8]) -> [u8; 38] {
+    let mut buf = [0u8; 38];
+
+    buf[0] = 0xA5; // sync byte
+    buf[1] = status;
+
+    buf[2..6].copy_from_slice(&micros.to_le_bytes());
+
+    for (i, &val) in data.iter().enumerate() {
+        buf[6 + i * 4..6 + (i + 1) * 4].copy_from_slice(&val.to_le_bytes());
+    }
+
+    buf
+}
+
+use arrayvec::ArrayVec;
+use data_encoding::BASE64;
+fn base64encode_frame<'a>(frame: &[u8], buf: &'a mut [u8]) -> &'a str {
+    //let mut buf = ArrayVec::<u8, 128>::new();
+    //// I mean frames are always the same size
+    //// but you know
+    BASE64.encode_mut_str(&frame, buf)
+}
 
 #[bsp::rt::entry]
 fn main() -> ! {
@@ -98,6 +121,7 @@ fn main() -> ! {
         mut gpio4,
         lpuart2,
         mut lpspi4,
+        mut gpt1,
         ..
     } = board::t41(board::instances());
 
@@ -119,12 +143,20 @@ fn main() -> ! {
     const PIT_FREQUENCY_HZ: u32 = PERCLK_CLK_FREQUENCY_HZ;
 
     let pit = unsafe { ral::pit::PIT::instance() };
-    let (pit0, _, _, _) = bsp::hal::pit::new(pit);
+    let (pit0, mut pit1, _, _) = bsp::hal::pit::new(pit);
 
+    pit1.enable();
     let mut blocking = BlockingPit::<0, PIT_FREQUENCY_HZ>::from_pit(pit0);
 
 
-    blocking.block_ms(1000);
+    // uhh I'm leaving the delay config in
+    // but we don't currently need a delay per se
+    // blocking.block_ms(1000);
+
+    /// RTC config
+
+
+
     // pin 23 = gpio_ad_b1_09 → flexpwm4 pwma01 (module 4, sm 1, channel A)
     let pwm_pin = pins.p23;
     let out_a = Output::new_a(pwm_pin); // sets pin mux to alt‑2 for you
@@ -183,7 +215,7 @@ fn main() -> ! {
     // but I can't set the word size to 24 here (there is no u24 type)
     // words in SPI are not delimited
     // so let's read 15 24-bit words and reshuffle them later???
-    let mut adc_pkt : [u16; FRAME_LEN] = [0; FRAME_LEN];
+    let mut adc_pkt : [u8; FRAME_LEN] = [0; FRAME_LEN];
     let mut drdy_prev = false;
 
     // spin lock until drdy goes low for the first time..
@@ -193,23 +225,31 @@ fn main() -> ! {
     // 8.5.1.9.1 Collecting Data for the First Time or After a Pause in Data Collection
     for i in 0..2 {
         for j in 0..adc_pkt.len() {
-            adc_pkt[i] = 0u16;
+            adc_pkt[i] = 0u8;
         }
         lpspi4.transfer(&mut adc_pkt).unwrap();
     }
     // now we know there will be exactly 1 new frame for each DRDY edge
 
+    let mut outbuf = ArrayVec::<u8, 128>::new();
+    let outbuflen = BASE64.encode_len(38);
+    // super dumb but it's not even in the main loop so who cares tbh
+    for i in 0..outbuflen {
+        outbuf.push(0);
+    }
     loop {
         if !drdy_prev && drdy.is_low().unwrap() {
+            // pit1 counts down not up, so we invert to get timer value
+            let micros: u32 = !pit1.current_timer_value();
             drdy_prev = true;
             lpspi4.transfer(&mut adc_pkt).unwrap();
-            let status = regs::Status::from_word(adc_pkt[0]);
-            ::log::info!("{:?}", status);
-            let data = extract_data(&adc_pkt);
-            //::log::info!("{:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b} {:016b}", adc_pkt[0], adc_pkt[1], adc_pkt[2], adc_pkt[3], adc_pkt[4], adc_pkt[5], adc_pkt[6], adc_pkt[7], adc_pkt[8], adc_pkt[9], adc_pkt[10], adc_pkt[11], adc_pkt[12], adc_pkt[13], adc_pkt[14]);
-            ::log::info!("{}", data[0]);
+            let status = regs::Status::from_bytes(&adc_pkt);
+            let data = chop_bits(&adc_pkt);
+            let frame = mk_pc_frame(0, micros, &data);
+            let enc = base64encode_frame(&frame, outbuf.as_mut_slice());
+            ::log::info!("{}", enc);
             for i in 0..adc_pkt.len() {
-                adc_pkt[i] = 0u16;
+                adc_pkt[i] = 0u8;
             };
 
         }
