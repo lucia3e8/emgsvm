@@ -331,11 +331,9 @@ fn main() -> ! {
     //run_cmd(&mut cmds, &mut pkt, &mut lpspi4, 0);
 
     loop {
-        ::log::info!("in loop");
         if !drdy_prev && drdy.is_low().unwrap() {
             // pit1 counts down not up, so we invert to get timer value
             let micros: u32 = !pit1.current_timer_value();
-            ::log::info!("drdy_prev = true");
             drdy_prev = true;
 
             run_cmd(&mut cmds, &mut pkt, &mut lpspi4, micros);
