@@ -9,7 +9,6 @@ pub enum Command {
     RReg {
         addr: u8,
         count: u8,
-        read_mode: bool,
     },
     WReg {
         addr: u8,
@@ -28,23 +27,24 @@ impl Command {
             Command::Unlock => 0b0000_0110_0101_0101,
             Command::RReg {
                 addr,
-                count,
-                read_mode,
+                count
             } => {
-                let prefix = if read_mode {
-                    0b1110_0000_0000_0000
-                } else {
-                    0b1010_0000_0000_0000
-                };
-                let a = ((addr & 0b11111) as u16) << 8;
+                let prefix = 0b1010_0000_0000_0000;
+                let a = ((addr & 0b11111) as u16) << 7;
                 let n = (count & 0b1111) as u16;
                 prefix | a as u16 | n
             }
             Command::WReg { addr, count } => {
-                let a = ((addr & 0b11111) as u16) << 8;
+                let a = ((addr & 0b11111) as u16) << 7;
                 let n = (count & 0b1111_1111) as u16;
                 0b0100_0000_0000_0000 | a | n
             }
         }
+    }
+
+    pub fn encode(self, buffer: &mut [u8]) {
+        let command = self.to_u16();
+        buffer[0] = (command >> 8) as u8;
+        buffer[1] = command as u8;
     }
 }

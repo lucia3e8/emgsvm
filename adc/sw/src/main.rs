@@ -7,20 +7,15 @@ use teensy4_panic as _;
 use bsp::board;
 
 use bsp::hal::{
-    ccm::{self, clock_gate, perclk_clk},
-    flexpwm::{Channel, Output, PairOperation, Prescaler, Submodule, FULL_RELOAD_VALUE_REGISTER},
-    gpt::ClockSource,
-    iomuxc::consts::*,
     timer::BlockingPit,
+    ccm::{self, clock_gate, perclk_clk},
+    flexpwm::{Output, PairOperation, Prescaler, FULL_RELOAD_VALUE_REGISTER},
 };
 use bsp::ral;
 use imxrt_log::log;
-use teensy4_pins::{common, configure, t41, Config, OpenDrain, PullKeeper};
 
-use bsp::rt;
 use cortex_m::prelude::_embedded_hal_blocking_spi_Transfer;
 use embedded_hal::digital::InputPin;
-use embedded_io::{Read, Write};
 
 mod cmds;
 mod regs;
@@ -119,6 +114,7 @@ fn run_cmd<P, const N: u8>(
     spi: &mut bsp::hal::lpspi::Lpspi<P, N>,
     micros: u32, // handling some commands requires knowing the time
 ) {
+    // we use the same buffer for both sending and receiving
     for i in 0..FRAME_LEN {
         pkt[i] = 0u8;
     }
@@ -127,8 +123,11 @@ fn run_cmd<P, const N: u8>(
         cmds.push(Command::Null);
     }
 
+    cmds[0].encode(pkt);
     // mutates pkt in place with received bytes
     spi.transfer(pkt).unwrap();
+    // command has been sent, dequeue it
+    cmds.remove(0);
 
     match cmds[0] {
         Command::Null => {
@@ -137,25 +136,27 @@ fn run_cmd<P, const N: u8>(
         Command::RReg {
             addr,
             count,
-            read_mode,
         } => {
-            cmd_handle_rreg(pkt, addr, count, read_mode);
+            cmd_handle_rreg(pkt, addr, count);
         }
         _ => todo!(),
     };
 }
 
 fn cmd_handle_null(pkt: &[u8], micros: u32) {
-    let mut outbuf = ArrayVec::<u8, 128>::new();
-    let outbuflen = BASE64.encode_len(38);
-    // super dumb but idc for now
-    for i in 0..outbuflen {
-        outbuf.push(0);
-    }
 
-    let status = regs::Status::from_bytes(&pkt);
+    // todo: parse status, print errors if not ok
+    // let status = regs::Status::from_bytes(&pkt);
     let data = chop_bits(pkt);
     let frame = mk_pc_frame(0, micros, &data);
+
+    let mut outbuf = ArrayVec::<u8, 128>::new();
+    let outbuflen = BASE64.encode_len(38);
+    // SAFETY: we know base64encode_frame will write exactly outbuflen bytes
+    for _ in 0..outbuflen{
+        outbuf.push(0);
+    }
+    // unsafe { outbuf.set_len(outbuflen); }
     let enc = base64encode_frame(&frame, outbuf.as_mut_slice());
     // host client listens for these
     // you can still log normally btw
@@ -163,7 +164,7 @@ fn cmd_handle_null(pkt: &[u8], micros: u32) {
     ::log::info!("db64:{}", enc);
 }
 
-fn cmd_handle_rreg(pkt: &[u8], addr: u8, count: u8, read_mode: bool) {
+fn cmd_handle_rreg(pkt: &[u8], addr: u8, count: u8) {
     for i in 0..count {
         let a = addr + i;
         let start = (i as usize) * 2;
@@ -215,13 +216,11 @@ fn main() -> ! {
         mut gpio1,
         mut gpio2,
         mut gpio4,
-        lpuart2,
-        mut lpspi4,
-        mut gpt1,
+        lpspi4,
         ..
     } = board::t41(board::instances());
 
-    /// DELAY CONFIG
+    // DELAY CONFIG
     // Before touching the PERCLK clock roots, turn off all downstream clock gates.
     clock_gate::PERCLK_CLOCK_GATES
         .iter()
@@ -245,6 +244,7 @@ fn main() -> ! {
 
     pit1.enable();
     let mut blocking = BlockingPit::<0, PIT_FREQUENCY_HZ>::from_pit(pit0);
+    blocking.block_ms(10);
 
     // uhh I'm leaving the delay config in
     // but we don't currently need a delay per se
@@ -260,7 +260,7 @@ fn main() -> ! {
 
     // set SYNC/RESET pin high
     let sync_pin = pins.p2;
-    let mut sync_pin_out = gpio4.output(sync_pin);
+    let sync_pin_out = gpio4.output(sync_pin);
     sync_pin_out.set();
 
     const PERIOD: i16 = 18;
@@ -307,7 +307,7 @@ fn main() -> ! {
     // but I can't set the word size to 24 here (there is no u24 type)
     // words in SPI are not delimited
     // so let's read 15 24-bit words and reshuffle them later???
-    let mut adc_pkt: [u8; FRAME_LEN] = [0; FRAME_LEN];
+    let mut pkt: [u8; FRAME_LEN] = [0; FRAME_LEN];
     let mut drdy_prev = false;
 
     // spin lock until drdy goes low for the first time..
@@ -315,23 +315,30 @@ fn main() -> ! {
     // then read 2 frames to clear the FIFO buffer
     // see datasheet section:
     // 8.5.1.9.1 Collecting Data for the First Time or After a Pause in Data Collection
-    for i in 0..2 {
-        for j in 0..adc_pkt.len() {
-            adc_pkt[i] = 0u8;
+    for _ in 0..2 {
+        for i in 0..pkt.len() {
+            pkt[i] = 0u8;
         }
-        lpspi4.transfer(&mut adc_pkt).unwrap();
+        lpspi4.transfer(&mut pkt).unwrap();
     }
     // now we know there will be exactly 1 new frame for each DRDY edge
 
+    // Define cmds as an ArrayVec of Command with a capacity of 8
+    let mut cmds: ArrayVec<Command, 8> = ArrayVec::new();
+    cmds.push(Command::Null);
+
+    // Call run_cmd once before the loop
+    //run_cmd(&mut cmds, &mut pkt, &mut lpspi4, 0);
+
     loop {
+        ::log::info!("in loop");
         if !drdy_prev && drdy.is_low().unwrap() {
             // pit1 counts down not up, so we invert to get timer value
             let micros: u32 = !pit1.current_timer_value();
+            ::log::info!("drdy_prev = true");
             drdy_prev = true;
 
-            for i in 0..adc_pkt.len() {
-                adc_pkt[i] = 0u8;
-            }
+            run_cmd(&mut cmds, &mut pkt, &mut lpspi4, micros);
         }
         if drdy.is_high().unwrap() {
             drdy_prev = false;
