@@ -17,14 +17,14 @@ impl Status {
         let word = u16::from_be_bytes([bytes[0], bytes[1]]);
 
         Self {
-            lock:      (word & (1 << 15)) != 0,
-            f_resync:  (word & (1 << 14)) != 0,
-            reg_map:   (word & (1 << 13)) != 0,
-            crc_err:   (word & (1 << 12)) != 0,
-            crc_type:  (word & (1 << 11)) != 0,
-            reset:     (word & (1 << 10)) != 0,
-            wlength:   ((word >> 8) & 0b11) as u8,
-            drdy:      (word & 0xFF) as u8,
+            lock: (word & (1 << 15)) != 0,
+            f_resync: (word & (1 << 14)) != 0,
+            reg_map: (word & (1 << 13)) != 0,
+            crc_err: (word & (1 << 12)) != 0,
+            crc_type: (word & (1 << 11)) != 0,
+            reset: (word & (1 << 10)) != 0,
+            wlength: ((word >> 8) & 0b11) as u8,
+            drdy: (word & 0xFF) as u8,
         }
     }
 }
@@ -41,5 +41,95 @@ impl core::fmt::Debug for Status {
 
         write!(f, "drdy=0b{:08b} ", self.drdy)?;
         Ok(())
-       }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Mode {
+    pub regcrc_en: bool,
+    pub rx_crc_en: bool,
+    pub crc_type: bool,
+    pub reset: bool,
+    pub wlength: u8,  // 2 bits
+    pub drdy_sel: u8, // 2 bits
+    pub drdy_hiz: bool,
+    pub drdy_fmt: bool,
+}
+
+impl Mode {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        assert!(bytes.len() >= 2);
+        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+        Self {
+            regcrc_en: (word & (1 << 13)) != 0,
+            rx_crc_en: (word & (1 << 12)) != 0,
+            crc_type: (word & (1 << 11)) != 0,
+            reset: (word & (1 << 10)) != 0,
+            wlength: ((word >> 8) & 0b11) as u8,
+            drdy_sel: ((word >> 6) & 0b11) as u8,
+            drdy_hiz: (word & (1 << 5)) != 0,
+            drdy_fmt: (word & (1 << 4)) != 0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Clock {
+    pub ch_enable: u8, // bits 15..8 = CH7_EN..CH0_EN
+    pub osr: u8,       // bits 5..3
+    pub pwr: u8,       // bits 1..0
+}
+
+impl Clock {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        assert!(bytes.len() >= 2);
+        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+        Self {
+            ch_enable: (word >> 8) as u8,
+            osr: ((word >> 3) & 0b111) as u8,
+            pwr: (word & 0b11) as u8,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Gain {
+    pub pgagain_low: u8,  // bits 2:0
+    pub pgagain_high: u8, // bits 10:8
+}
+
+impl Gain {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        assert!(bytes.len() >= 2);
+        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+        Self {
+            pgagain_low: (word & 0b111) as u8,
+            pgagain_high: ((word >> 8) & 0b111) as u8,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Cfg {
+    pub cd_allch: bool,
+    pub cd_num: u8, // bits 13:12
+    pub cd_len: u8, // bits 11:10
+    pub cd_en: bool,
+    pub gc_dly: u8, // bits 7:4
+    pub gc_en: bool,
+}
+
+impl Cfg {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        assert!(bytes.len() >= 2);
+        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+        Self {
+            cd_allch: (word & (1 << 15)) != 0,
+            cd_num: ((word >> 12) & 0b11) as u8,
+            cd_len: ((word >> 10) & 0b11) as u8,
+            cd_en: (word & (1 << 9)) != 0,
+            gc_dly: ((word >> 4) & 0b1111) as u8,
+            gc_en: (word & (1 << 0)) != 0,
+        }
+    }
 }

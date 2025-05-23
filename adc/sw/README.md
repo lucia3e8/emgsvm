@@ -23,3 +23,9 @@ cargo objcopy --verbose --release -- -O ihex simsamadc.hex
 sudo teensy-loader-cli --mcu TEENSY41 -w simsamadc.hex
 ```
 then press button on teensy
+
+## data format
+ADC --SPI+some-pins-> Teensy --this-format--> host pc
+
+
+

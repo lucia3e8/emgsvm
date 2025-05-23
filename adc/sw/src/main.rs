@@ -6,25 +6,27 @@ use teensy4_panic as _;
 
 use bsp::board;
 
-use imxrt_log::log;
-use teensy4_pins::{t41, common, Config, configure, PullKeeper, OpenDrain};
 use bsp::hal::{
     ccm::{self, clock_gate, perclk_clk},
-    timer::BlockingPit,
     flexpwm::{Channel, Output, PairOperation, Prescaler, Submodule, FULL_RELOAD_VALUE_REGISTER},
-    iomuxc::consts::*,
     gpt::ClockSource,
+    iomuxc::consts::*,
+    timer::BlockingPit,
 };
 use bsp::ral;
+use imxrt_log::log;
+use teensy4_pins::{common, configure, t41, Config, OpenDrain, PullKeeper};
 
 use bsp::rt;
-use embedded_io::{Read, Write};
-use embedded_hal::digital::InputPin;
 use cortex_m::prelude::_embedded_hal_blocking_spi_Transfer;
+use embedded_hal::digital::InputPin;
+use embedded_io::{Read, Write};
 
+mod cmds;
 mod regs;
+use cmds::Command;
 
-const FRAME_LEN:usize = 30;
+const FRAME_LEN: usize = 30;
 fn initialize_logger() -> Option<imxrt_log::Poller> {
     // logging
     let usb_instances = bsp::hal::usbd::Instances {
@@ -55,7 +57,7 @@ fn USB_OTG1() {
 // 10 of those to a frame = 240 bits aka 30 u8s
 // this discards the first and last 24 bits (status and CRC)
 // then converts the remaining 8 into i32s (smallest type that fits 24 bits)
-fn chop_bits(bytes: &[u8; 30]) -> [i32; 8] {
+fn chop_bits(bytes: &[u8]) -> [i32; 8] {
     let mut out = [0i32; 8];
     for (i, slot) in out.iter_mut().enumerate() {
         let bit_offset = 24 + i * 24;
@@ -81,7 +83,6 @@ fn chop_bits(bytes: &[u8; 30]) -> [i32; 8] {
     out
 }
 
-
 // "pc frames" are the frames that go to your pc
 // as opposed to the frame we're receiving from the ADC
 #[inline(always)]
@@ -103,10 +104,105 @@ fn mk_pc_frame(status: u8, micros: u32, data: &[i32; 8]) -> [u8; 38] {
 use arrayvec::ArrayVec;
 use data_encoding::BASE64;
 fn base64encode_frame<'a>(frame: &[u8], buf: &'a mut [u8]) -> &'a str {
-    //let mut buf = ArrayVec::<u8, 128>::new();
-    //// I mean frames are always the same size
-    //// but you know
     BASE64.encode_mut_str(&frame, buf)
+}
+
+// send the next available command to the ADS131
+// cmds[0] is always the last-issued command
+// this tells us how to interpret output
+// cmds[1] is next command to be sent
+// if len(cmds) = 1, run_cmd appends a Command::Null to the end
+// so keep receiving data
+fn run_cmd<P, const N: u8>(
+    cmds: &mut ArrayVec<Command, 8>,
+    pkt: &mut [u8; FRAME_LEN],
+    spi: &mut bsp::hal::lpspi::Lpspi<P, N>,
+    micros: u32, // handling some commands requires knowing the time
+) {
+    for i in 0..FRAME_LEN {
+        pkt[i] = 0u8;
+    }
+
+    if cmds.len() == 1 {
+        cmds.push(Command::Null);
+    }
+
+    // mutates pkt in place with received bytes
+    spi.transfer(pkt).unwrap();
+
+    match cmds[0] {
+        Command::Null => {
+            cmd_handle_null(pkt, micros);
+        }
+        Command::RReg {
+            addr,
+            count,
+            read_mode,
+        } => {
+            cmd_handle_rreg(pkt, addr, count, read_mode);
+        }
+        _ => todo!(),
+    };
+}
+
+fn cmd_handle_null(pkt: &[u8], micros: u32) {
+    let mut outbuf = ArrayVec::<u8, 128>::new();
+    let outbuflen = BASE64.encode_len(38);
+    // super dumb but idc for now
+    for i in 0..outbuflen {
+        outbuf.push(0);
+    }
+
+    let status = regs::Status::from_bytes(&pkt);
+    let data = chop_bits(pkt);
+    let frame = mk_pc_frame(0, micros, &data);
+    let enc = base64encode_frame(&frame, outbuf.as_mut_slice());
+    // host client listens for these
+    // you can still log normally btw
+    // the db64 prefix is special
+    ::log::info!("db64:{}", enc);
+}
+
+fn cmd_handle_rreg(pkt: &[u8], addr: u8, count: u8, read_mode: bool) {
+    for i in 0..count {
+        let a = addr + i;
+        let start = (i as usize) * 2;
+        let end = start + 2;
+        if end > pkt.len() {
+            ::log::warn!("incomplete data for reg {:02x}", a);
+            break;
+        }
+        let bytes = &pkt[start..end];
+
+        match a {
+            0x01 => {
+                let val = regs::Status::from_bytes(bytes);
+                ::log::info!("STATUS: {:?}", val);
+            }
+            0x02 => {
+                let val = regs::Mode::from_bytes(bytes);
+                ::log::info!("MODE: {:?}", val);
+            }
+            0x03 => {
+                let val = regs::Clock::from_bytes(bytes);
+                ::log::info!("CLOCK: {:?}", val);
+            }
+            0x04 | 0x05 => {
+                let val = regs::Gain::from_bytes(bytes);
+                ::log::info!("GAIN{}: {:?}", a - 3, val); // 1 or 2
+            }
+            0x06 => {
+                let val = regs::Cfg::from_bytes(bytes);
+                ::log::info!("CFG: {:?}", val);
+            }
+            0x00 => {
+                ::log::info!("ID: 0x{:02x}{:02x}", bytes[0], bytes[1]);
+            }
+            _ => {
+                ::log::info!("REG {:02x}: 0x{:02x}{:02x}", a, bytes[0], bytes[1]);
+            }
+        }
+    }
 }
 
 #[bsp::rt::entry]
@@ -127,7 +223,9 @@ fn main() -> ! {
 
     /// DELAY CONFIG
     // Before touching the PERCLK clock roots, turn off all downstream clock gates.
-    clock_gate::PERCLK_CLOCK_GATES.iter().for_each(|loc| loc.set(&mut ccm, clock_gate::OFF));
+    clock_gate::PERCLK_CLOCK_GATES
+        .iter()
+        .for_each(|loc| loc.set(&mut ccm, clock_gate::OFF));
 
     // Configure PERCLK to match this frequency:
     const PERCLK_CLK_FREQUENCY_HZ: u32 = ccm::XTAL_OSCILLATOR_HZ / PERCLK_CLK_DIVIDER;
@@ -148,14 +246,9 @@ fn main() -> ! {
     pit1.enable();
     let mut blocking = BlockingPit::<0, PIT_FREQUENCY_HZ>::from_pit(pit0);
 
-
     // uhh I'm leaving the delay config in
     // but we don't currently need a delay per se
     // blocking.block_ms(1000);
-
-    /// RTC config
-
-
 
     // pin 23 = gpio_ad_b1_09 → flexpwm4 pwma01 (module 4, sm 1, channel A)
     let pwm_pin = pins.p23;
@@ -173,7 +266,7 @@ fn main() -> ! {
     const PERIOD: i16 = 18;
 
     // ── submodule setup ────────────────────────────
-    sm1.set_prescaler(Prescaler::Prescaler1);                // /1
+    sm1.set_prescaler(Prescaler::Prescaler1); // /1
     sm1.set_pair_operation(PairOperation::Independent);
 
     sm1.set_initial_count(&mut pwm4, 0);
@@ -185,9 +278,9 @@ fn main() -> ! {
     out_a.set_output_enable(&mut pwm4, true);
     sm1.set_load_ok(&mut pwm4); // copy buffered regs
     sm1.set_running(&mut pwm4, true); // GO
-    // now pin 23 spews ~8.33 mhz square wave
-    // this works! - confirmed on scope
-    // im a bit worried I may be misunderstanding how they count the period though
+                                      // now pin 23 spews ~8.33 mhz square wave
+                                      // this works! - confirmed on scope
+                                      // im a bit worried I may be misunderstanding how they count the period though
 
     // set up logger
     // later we'll send some data over this stream, inefficient but w/e
@@ -204,18 +297,17 @@ fn main() -> ! {
             sck: pins.p13,
             pcs0: pins.p10,
         },
-        1_000_000 // 1 MHz?
+        1_000_000, // 1 MHz?
     );
 
     lpspi4.set_mode(bsp::hal::lpspi::MODE_1);
-
 
     let mut drdy = gpio2.input(pins.p9);
     // ADS131 docs want 10 24-bit words
     // but I can't set the word size to 24 here (there is no u24 type)
     // words in SPI are not delimited
     // so let's read 15 24-bit words and reshuffle them later???
-    let mut adc_pkt : [u8; FRAME_LEN] = [0; FRAME_LEN];
+    let mut adc_pkt: [u8; FRAME_LEN] = [0; FRAME_LEN];
     let mut drdy_prev = false;
 
     // spin lock until drdy goes low for the first time..
@@ -231,32 +323,18 @@ fn main() -> ! {
     }
     // now we know there will be exactly 1 new frame for each DRDY edge
 
-    let mut outbuf = ArrayVec::<u8, 128>::new();
-    let outbuflen = BASE64.encode_len(38);
-    // super dumb but it's not even in the main loop so who cares tbh
-    for i in 0..outbuflen {
-        outbuf.push(0);
-    }
     loop {
         if !drdy_prev && drdy.is_low().unwrap() {
             // pit1 counts down not up, so we invert to get timer value
             let micros: u32 = !pit1.current_timer_value();
             drdy_prev = true;
-            lpspi4.transfer(&mut adc_pkt).unwrap();
-            let status = regs::Status::from_bytes(&adc_pkt);
-            let data = chop_bits(&adc_pkt);
-            let frame = mk_pc_frame(0, micros, &data);
-            let enc = base64encode_frame(&frame, outbuf.as_mut_slice());
-            ::log::info!("{}", enc);
+
             for i in 0..adc_pkt.len() {
                 adc_pkt[i] = 0u8;
-            };
-
+            }
         }
         if drdy.is_high().unwrap() {
             drdy_prev = false;
         }
     }
-
 }
-
