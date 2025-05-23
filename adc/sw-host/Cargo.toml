@@ -1,0 +1,9 @@
+[package]
+name = "sw-host"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serialport = "4.2"
+base64 = "0.21"
+binrw = "0.12"
