@@ -5,3 +5,5 @@ fp-info-cache
 outputs
 adc/sw/target
 adc/sw/*.hex
+adc/sw-host/target
+
