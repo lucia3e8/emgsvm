@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serialport = "4.2"
-base64 = "0.21"
-binrw = "0.12"
+serialport = "4.7.2"
+base64 = "0.22"
+binrw = "0.15"
+egui = "0.28"
+eframe = "0.28"
+egui_plot = "0.28"
