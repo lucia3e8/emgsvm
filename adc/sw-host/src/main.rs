@@ -5,9 +5,11 @@ use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
+use serde_json;
 use eframe::egui;
 use egui_plot::{Line, Plot, PlotPoints};
 use std::time::Instant;
+use std::env;
 
 #[binread]
 #[derive(Debug, Clone)]
@@ -282,8 +284,57 @@ pub fn run_gui(data_buffer: Arc<Mutex<VecDeque<Frame>>>) -> Result<(), eframe::E
     )
 }
 
+fn run_headless(port_name: &str) -> io::Result<()> {
+    let port = serialport::new(port_name, 115_200)
+        .timeout(Duration::from_millis(100))
+        .open()?;
+    
+    println!("Connected to {} in headless mode", port_name);
+    println!("Reading one frame...");
+    
+    let reader = BufReader::new(port);
+    for line in reader.lines() {
+        match line {
+            Ok(line) => {
+                if let Some(data) = line.strip_prefix("[INFO simsamadc]: db64:") {
+                    match BASE64.decode(data.trim()) {
+                        Ok(decoded) => {
+                            match Frame::read(&mut Cursor::new(&decoded)) {
+                                Ok(frame) => {
+                                    let output = serde_json::json!({
+                                        "status": format!("0x{:02x}", frame.status),
+                                        "micros": frame.micros,
+                                        "channels": frame.values
+                                    });
+                                    println!("{}", output);
+                                    return Ok(());
+                                }
+                                Err(e) => eprintln!("Failed to parse frame: {}", e),
+                            }
+                        }
+                        Err(e) => eprintln!("Failed to decode base64: {}", e),
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Serial port error: {:?}", e);
+                return Err(e);
+            }
+        }
+    }
+    Ok(())
+}
+
 fn main() -> io::Result<()> {
+    let args: Vec<String> = env::args().collect();
+    let headless = args.len() > 1 && args[1] == "--headless";
+    
     let port_name = "/dev/ttyACM0";
+    
+    if headless {
+        return run_headless(port_name);
+    }
+    
     let state = Arc::new(Mutex::new(VecDeque::new()));
 
     let state_clone_serial = state.clone();
