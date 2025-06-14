@@ -1,3 +1,9 @@
+# In this file: trying to hook up python to a keysight scope
+# I gave up on this after learning the scope only had 8 bits of resolution
+# which was not useful for what I was doing at the time
+# kinda cool to play around with a scope from python tho
+# esp if you let claude drive
+
 import pyvisa as visa
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,9 +24,9 @@ def succeed(scope, command):
         if esr & (1 << 2): errors.append("Query Error (Data not available/lost)")
         if esr & (1 << 1): errors.append("Request Control")
         if esr & (1 << 0): errors.append("Operation Complete")
-        
+
         error_details = scope.query(":SYSTem:ERRor?").strip()
-        raise RuntimeError(f"Command '{command}' failed with ESR {esr}:\n" + 
+        raise RuntimeError(f"Command '{command}' failed with ESR {esr}:\n" +
                          "\n".join(errors) + f"\nScope error: {error_details}")
 
 # Example usage:
@@ -30,7 +36,7 @@ def succeed(scope, command):
 rm = visa.ResourceManager()
 print("Available resources:")
 print(rm.list_resources())
-scope = rm.open_resource('USB0::0xF4EC::0x1011::SDS2PCBX4R0394::INSTR') 
+scope = rm.open_resource('USB0::0xF4EC::0x1011::SDS2PCBX4R0394::INSTR')
 scope.timeout = 10000  # ms
 
 
@@ -74,16 +80,16 @@ def capture_and_save(capture_number):
     succeed(scope, ":RUN")
     time.sleep(0.1)  # Short acquisition time
     succeed(scope, ":STOP")
-    
+
     # Read back actual settings (for scaling)
     time_scale = float(scope.query(":TIMebase:SCALe?"))
     vertical_scale = float(scope.query(f":CHANnel{channel}:SCALe?"))
     vertical_offset = float(scope.query(f":CHANnel{channel}:OFFSet?"))
-    
+
     # Capture waveform data
     succeed(scope, ":WAVeform:DATA?")
     data = scope.read_raw()
-    
+
     # Parse the header correctly
     # Format is "DAT2,#9010000000" where:
     # - "DAT2," is the prefix
@@ -94,22 +100,22 @@ def capture_and_save(capture_number):
     data_size = int(data[header_offset:header_offset+9])
     data_offset = header_offset + 9
     data = data[data_offset:data_offset+data_size]  # Extract just the waveform data
-    
+
     # Convert binary data to numerical values
     wave_data = np.frombuffer(data, dtype=np.uint8)
-    
+
     # Apply scaling to convert to voltage
     vertical_scale_factor = vertical_scale / 25  # Convert divisions to actual values
     voltage_data = (wave_data - 128) * vertical_scale_factor - vertical_offset
-    
+
     # Create time axis
     time_data = np.linspace(0, time_scale * 10, len(voltage_data))  # 10 divisions across
-    
+
     # Save data to CSV
     filename = f"{save_dir}/waveform_{capture_number}.csv"
-    np.savetxt(filename, np.column_stack((time_data, voltage_data)), delimiter=",", 
+    np.savetxt(filename, np.column_stack((time_data, voltage_data)), delimiter=",",
                header="Time (s),Voltage (V)", comments="")
-    
+
     return len(voltage_data)  # Return number of samples captured
 
 # Capture data continuously for 5 seconds

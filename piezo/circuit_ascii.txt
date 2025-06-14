@@ -1,0 +1,32 @@
+
+    Piezo Mic Preamp Circuit - ASCII Diagram
+    =========================================
+    
+    VDD (3.3V)
+        |
+        +--[100k]--+--[100k]-- VSS (0V)
+                   |
+                   +-- Vbias (1.65V)
+                   |
+                   |         Unity Gain        AC Coupling      Gain Stage (G=10)
+    Piezo          |          Buffer                                    
+      ~            |            ___              ||                 ___
+     (~) ----||----+----+------|>  |----+-------||----+-----------|>  |----+---- Output
+      |      1nF        |      |___|    |       1µF   |           |___|    |     (0-3.3V)
+      |                 |               |             |              |      |
+      |              [10MΩ]             |          [1MΩ]            /|\     |
+      |                 |               |             |              |     [|]
+     VSS               VSS              |          Vbias          [9k]     |  [100k]
+                                        |                           |      |     |
+                                        +---------------------------+     [|]   VSS
+                                                                          [1k]
+                                                                           |
+                                                                        Vbias
+    
+    Key Components:
+    - Piezo: ~50mV signal source with 1nF capacitance
+    - Input Buffer: High-Z unity gain buffer
+    - AC Coupling: 1µF cap with 1MΩ DC restoration
+    - Gain Stage: Non-inverting amp with gain of 10
+    - Output: Clamped to 0-3.3V range
+    

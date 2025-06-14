@@ -1,0 +1,73 @@
+digraph PiezoPreamp {
+    rankdir=LR;
+    graph [fontname="Arial", splines=ortho];
+    node [shape=box, style=filled, fillcolor=lightblue, fontname="Arial"];
+    edge [fontname="Arial"];
+    
+    // Define nodes
+    subgraph cluster_input {
+        label="Input Stage";
+        style=dotted;
+        Vpiezo [label="Piezo\n50mV AC", shape=circle, fillcolor=lightgreen];
+        Cpiezo [label="Cpiezo\n1nF", shape=box, fillcolor=lightyellow];
+        Rpiezo [label="Rpiezo\n10MΩ", shape=box, fillcolor=lightyellow];
+    }
+    
+    subgraph cluster_buffer {
+        label="Unity Gain Buffer";
+        style=dotted;
+        Buffer1 [label="Buffer\nG=1\nHigh-Z", shape=triangle, fillcolor=lightcoral];
+    }
+    
+    subgraph cluster_coupling {
+        label="AC Coupling";
+        style=dotted;
+        C_ac [label="C_ac\n1µF", shape=box, fillcolor=lightyellow];
+        R_dc [label="R_dc\n1MΩ", shape=box, fillcolor=lightyellow];
+    }
+    
+    subgraph cluster_amp {
+        label="Gain Stage";
+        style=dotted;
+        Amp2 [label="Amp\nG=10", shape=triangle, fillcolor=lightcoral];
+        Rf [label="Rf=9k", shape=box, fillcolor=lightyellow];
+        Rg [label="Rg=1k", shape=box, fillcolor=lightyellow];
+    }
+    
+    subgraph cluster_output {
+        label="Output Stage";
+        style=dotted;
+        Clamp [label="Clamp\nDiodes", shape=diamond, fillcolor=orange];
+        R_load [label="R_load\n100kΩ", shape=box, fillcolor=lightyellow];
+        Output [label="Output\n0-3.3V", shape=circle, fillcolor=lightgreen];
+    }
+    
+    // Power and bias
+    VDD [label="VDD\n3.3V", shape=invhouse, fillcolor=cyan];
+    VSS [label="VSS\n0V", shape=invhouse, fillcolor=gray];
+    Vbias [label="Vbias\n1.65V\n(R divider)", shape=hexagon, fillcolor=lightgreen];
+    
+    // Connections
+    Vpiezo -> Cpiezo;
+    Cpiezo -> Rpiezo;
+    Rpiezo -> Buffer1 [label="High-Z input"];
+    Buffer1 -> C_ac;
+    C_ac -> Amp2;
+    C_ac -> R_dc [style=dashed, label="DC path"];
+    R_dc -> Vbias [style=dashed];
+    Amp2 -> Rf [dir=back, label="feedback"];
+    Rf -> Rg;
+    Rg -> Vbias [style=dashed];
+    Amp2 -> Clamp;
+    Clamp -> R_load;
+    R_load -> Output;
+    
+    // Power connections
+    VDD -> Clamp [style=dotted, color=blue];
+    VSS -> Clamp [style=dotted, color=blue];
+    Vbias -> Buffer1 [style=dashed, color=green, label="bias"];
+    
+    // Ground connections
+    Vpiezo -> VSS [style=dotted, color=gray];
+    R_load -> VSS [style=dotted, color=gray];
+}

@@ -1,0 +1,69 @@
+* Piezo Mic Preamp Circuit - Fixed Version
+* Target: 0-3.3V output for ADC input
+* High input impedance for piezo element
+
+.title Piezo Microphone Preamplifier
+
+* Power supply
+VDD vdd 0 DC 3.3V
+VSS vss 0 DC 0
+
+* Piezo mic model (voltage source with high impedance)
+* Typical piezo: ~1nF capacitance, generates ~10-100mV signals
+Vpiezo piezo 0 AC 0.05 SIN(0 0.05 1k)
+Cpiezo piezo in 1n
+Rpiezo piezo in 10Meg
+
+* Bias voltage generation (VDD/2 = 1.65V)
+R_bias1 vdd vbias 100k
+R_bias2 vbias 0 100k
+C_bias vbias 0 10u
+
+* Input stage - Unity gain buffer with high input impedance
+* Using voltage-controlled voltage source as ideal op-amp
+E_buffer1 buf1 0 in vbias 1e6
+R_buf1_out buf1 buf1_out 100
+R_buf1_fb buf1_out in 1Meg
+
+* AC coupling with DC restoration
+C_ac buf1_out coupled 1u
+R_dc coupled vbias 1Meg
+
+* Second stage - Non-inverting amplifier
+* Gain = 1 + Rf/Rg
+E_amp2 amp_int 0 coupled inv2 1e6
+R_amp2_out amp_int out 100
+
+* Feedback network for gain of 10
+R_gain_fb out inv2 9k
+R_gain_gnd inv2 vbias 1k
+
+* Output limiting (simple diode clamp model)
+D_high out vdd D1N4148
+D_low 0 out D1N4148
+
+* Diode model
+.model D1N4148 D(Is=2.52e-9 Rs=0.568 N=1.752 Cjo=4e-12 M=0.4 Vj=0.7)
+
+* Output load
+R_load out 0 100k
+
+* Analysis commands
+.ac dec 100 1 100k
+.tran 10u 10m
+.op
+
+* Control commands
+.control
+run
+* Save results to file
+wrdata piezo_preamp_ac.txt frequency vdb(out) vp(out)
+wrdata piezo_preamp_tran.txt time v(in) v(out) v(vbias)
+* Print DC operating point
+echo "DC Operating Point:"
+print v(vbias) v(out)
+echo "Gain at 1kHz:"
+print vdb(out)[100]
+.endc
+
+.end

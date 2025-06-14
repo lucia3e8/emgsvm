@@ -1,0 +1,65 @@
+* Piezo Mic Preamp Circuit
+* Target: 0-3.3V output for ADC input
+* High input impedance for piezo element
+
+.title Piezo Microphone Preamplifier
+
+* Power supply
+VDD 1 0 DC 3.3V
+
+* Piezo mic model (voltage source with high impedance)
+* Typical piezo: ~1nF capacitance, generates ~100mV signals
+Vpiezo piezo 0 AC 0.1 SIN(0 0.1 1k)
+Cpiezo piezo in 1n
+Rpiezo piezo in 10Meg
+
+* Input stage - high impedance buffer
+* Using JFET input op-amp model
+.subckt opamp_jfet inp inn out vdd vss
+* Simplified op-amp model with JFET input stage
+Rin inp inn 1000Meg
+Egain int1 0 inp inn 100000
+Rout int1 out 100
+.ends
+
+* First stage: Unity gain buffer for impedance matching
+XU1 in 0 buf1 1 0 opamp_jfet
+R1 buf1 in 1Meg
+C1 in 0 100p
+
+* AC coupling and bias
+C2 buf1 ac_coupled 1u
+R2 ac_coupled vbias 100k
+R3 vbias 0 100k
+R4 1 vbias 100k
+* Creates Vbias = VDD/2 = 1.65V
+
+* Second stage: Adjustable gain amplifier
+XU2 ac_coupled fb out 1 0 opamp_jfet
+* Gain = 1 + Rf/Rg = 1 + 10k/1k = 11
+Rf fb out 10k
+Rg fb 0 1k
+* DC feedback to maintain bias
+Rfb out vbias 1Meg
+
+* Output filter
+Cout out out_filtered 10u
+Rload out_filtered 0 10k
+
+* Analysis commands
+.ac dec 100 1 100k
+.tran 1u 10m
+
+* Control commands
+.control
+run
+* Plot frequency response
+plot vdb(out) xlimit 10 100k ylabel 'Gain (dB)' title 'Frequency Response'
+plot vp(out)*180/pi xlimit 10 100k ylabel 'Phase (degrees)'
+* Plot transient response
+plot v(in) v(out) xlimit 0 5m ylabel 'Voltage (V)' title 'Input vs Output'
+plot v(out) xlimit 0 5m ylabel 'Output Voltage (V)' title 'Output Waveform'
+print v(vbias)
+.endc
+
+.end
