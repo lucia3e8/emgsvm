@@ -22,6 +22,37 @@ struct Frame {
 
 const FRAME_COUNT: usize = 1024;
 
+#[derive(Debug, Clone)]
+struct StatusBits {
+    lock: bool,
+    f_resync: bool,
+    reg_map: bool,
+    crc_err: bool,
+    crc_type: bool,
+    reset: bool,
+    wlength: u8,
+}
+
+impl StatusBits {
+    fn wlength_str(&self) -> &'static str {
+        match self.wlength {
+            0b00 => "16-bit",
+            0b01 => "24-bit",
+            0b10 => "32-bit (zero pad)",
+            0b11 => "32-bit (sign ext)",
+            _ => "Unknown",
+        }
+    }
+
+    fn crc_type_str(&self) -> &'static str {
+        if self.crc_type {
+            "16-bit ANSI"
+        } else {
+            "16-bit CCITT"
+        }
+    }
+}
+
 pub struct AdcGui {
     // Shared data buffer with the serial reader thread
     data_buffer: Arc<Mutex<VecDeque<Frame>>>,
@@ -37,6 +68,9 @@ pub struct AdcGui {
 
     // For frame rate limiting
     last_update: Instant,
+
+    // Latest status byte
+    latest_status: Option<u8>,
 }
 
 impl AdcGui {
@@ -47,6 +81,19 @@ impl AdcGui {
             max_points: 1000, // Keep last 1000 points per channel
             is_recording: false,
             last_update: Instant::now(),
+            latest_status: None,
+        }
+    }
+
+    fn decode_status(&self, status: u8) -> StatusBits {
+        StatusBits {
+            lock: (status & 0x80) != 0,
+            f_resync: (status & 0x40) != 0,
+            reg_map: (status & 0x20) != 0,
+            crc_err: (status & 0x10) != 0,
+            crc_type: (status & 0x08) != 0,
+            reset: (status & 0x04) != 0,
+            wlength: status & 0x03,
         }
     }
 
@@ -55,6 +102,9 @@ impl AdcGui {
         if let Ok(buffer) = self.data_buffer.try_lock() {
             // Process all new frames
             for frame in buffer.iter() {
+                // Update latest status
+                self.latest_status = Some(frame.status);
+                
                 for (ch_idx, &value) in frame.values.iter().enumerate() {
                     // Convert i32 to f32 for plotting
                     self.plot_data[ch_idx].push_back(value as f32);
@@ -107,6 +157,44 @@ impl eframe::App for AdcGui {
 
             ui.separator();
 
+            // Status register display
+            if let Some(status) = self.latest_status {
+                let status_bits = self.decode_status(status);
+                
+                ui.group(|ui| {
+                    ui.label("STATUS Register:");
+                    ui.horizontal(|ui| {
+                        // Show raw value
+                        ui.label(format!("Raw: 0x{:02X}", status));
+                        ui.separator();
+                        
+                        // Show decoded bits
+                        if status_bits.lock {
+                            ui.colored_label(egui::Color32::RED, "🔒 LOCKED");
+                        }
+                        if status_bits.f_resync {
+                            ui.colored_label(egui::Color32::YELLOW, "⚠️ RESYNC");
+                        }
+                        if status_bits.reg_map {
+                            ui.colored_label(egui::Color32::YELLOW, "⚠️ REG_MAP");
+                        }
+                        if status_bits.crc_err {
+                            ui.colored_label(egui::Color32::RED, "❌ CRC_ERR");
+                        }
+                        if status_bits.reset {
+                            ui.colored_label(egui::Color32::LIGHT_BLUE, "🔄 RESET");
+                        }
+                        
+                        ui.separator();
+                        ui.label(format!("CRC: {}", status_bits.crc_type_str()));
+                        ui.separator();
+                        ui.label(format!("Word Length: {}", status_bits.wlength_str()));
+                    });
+                });
+            }
+
+            ui.separator();
+
             // Plot
             let plot_height = ui.available_height() - 20.0;
 
@@ -142,7 +230,7 @@ impl eframe::App for AdcGui {
                 ui.separator();
 
                 // Show latest values
-                if let Some(latest_frame) = self.plot_data[0].back() {
+                if !self.plot_data[0].is_empty() {
                     ui.label("Latest values:");
                     for (ch_idx, channel) in self.plot_data.iter().enumerate() {
                         if let Some(&value) = channel.back() {
