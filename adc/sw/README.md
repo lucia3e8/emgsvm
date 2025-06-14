@@ -27,5 +27,3 @@ then press button on teensy
 ## data format
 ADC --SPI+some-pins-> Teensy --this-format--> host pc
 
-
-

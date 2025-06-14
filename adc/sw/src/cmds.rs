@@ -31,9 +31,10 @@ impl Command {
             } => {
                 let prefix = 0b1010_0000_0000_0000;
                 let a = ((addr & 0b11111) as u16) << 7;
-                let n = (count & 0b1111) as u16;
-                prefix | a as u16 | n
+                let n = (count & 0b1111111) as u16;
+                prefix | a | n
             }
+
             Command::WReg { addr, count } => {
                 let a = ((addr & 0b11111) as u16) << 7;
                 let n = (count & 0b1111_1111) as u16;

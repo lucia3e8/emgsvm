@@ -59,7 +59,7 @@ pub struct Mode {
 impl Mode {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         assert!(bytes.len() >= 2);
-        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+        let word = u16::from_le_bytes([bytes[0], bytes[1]]);
         Self {
             regcrc_en: (word & (1 << 13)) != 0,
             rx_crc_en: (word & (1 << 12)) != 0,
@@ -83,7 +83,7 @@ pub struct Clock {
 impl Clock {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         assert!(bytes.len() >= 2);
-        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+        let word = u16::from_le_bytes([bytes[0], bytes[1]]);
         Self {
             ch_enable: (word >> 8) as u8,
             osr: ((word >> 3) & 0b111) as u8,
@@ -101,7 +101,7 @@ pub struct Gain {
 impl Gain {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         assert!(bytes.len() >= 2);
-        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+        let word = u16::from_le_bytes([bytes[0], bytes[1]]);
         Self {
             pgagain_low: (word & 0b111) as u8,
             pgagain_high: ((word >> 8) & 0b111) as u8,
@@ -122,7 +122,7 @@ pub struct Cfg {
 impl Cfg {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         assert!(bytes.len() >= 2);
-        let word = u16::from_be_bytes([bytes[0], bytes[1]]);
+        let word = u16::from_le_bytes([bytes[0], bytes[1]]);
         Self {
             cd_allch: (word & (1 << 15)) != 0,
             cd_num: ((word >> 12) & 0b11) as u8,

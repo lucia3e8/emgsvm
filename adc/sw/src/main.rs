@@ -108,12 +108,13 @@ fn base64encode_frame<'a>(frame: &[u8], buf: &'a mut [u8]) -> &'a str {
 // cmds[1] is next command to be sent
 // if len(cmds) = 1, run_cmd appends a Command::Null to the end
 // so keep receiving data
-fn run_cmd<P, const N: u8>(
-    cmds: &mut ArrayVec<Command, 8>,
+fn run_cmd<P, const N: u8, const M: usize>(
+    cmds: &mut ArrayVec<Command, M>,
     pkt: &mut [u8; FRAME_LEN],
     spi: &mut bsp::hal::lpspi::Lpspi<P, N>,
     micros: u32, // handling some commands requires knowing the time
 ) {
+    //cmds : [ LAST_SENT_COMMAND, CUR_COMMAND_TO_SEND, NEXT_COMMAND, ...]
     // we use the same buffer for both sending and receiving
     for i in 0..FRAME_LEN {
         pkt[i] = 0u8;
@@ -123,12 +124,12 @@ fn run_cmd<P, const N: u8>(
         cmds.push(Command::Null);
     }
 
-    cmds[0].encode(pkt);
-    // mutates pkt in place with received bytes
-    spi.transfer(pkt).unwrap();
-    // command has been sent, dequeue it
-    cmds.remove(0);
+    cmds[1].encode(pkt);
 
+    // mutates pkt in place
+    spi.transfer(pkt).unwrap();
+
+    // we just sent cmds[1] and received the response to cmds[0]
     match cmds[0] {
         Command::Null => {
             cmd_handle_null(pkt, micros);
@@ -137,10 +138,15 @@ fn run_cmd<P, const N: u8>(
             addr,
             count,
         } => {
+            let cmd_w = cmds[0].to_u16();
             cmd_handle_rreg(pkt, addr, count);
         }
         _ => todo!(),
     };
+
+    // command has been sent, dequeue it
+    cmds.remove(0);
+
 }
 
 fn cmd_handle_null(pkt: &[u8], micros: u32) {
@@ -164,47 +170,28 @@ fn cmd_handle_null(pkt: &[u8], micros: u32) {
     ::log::info!("db64:{}", enc);
 }
 
+// registers are 16 bit
+// recall devices uses 24 bit words
+// values are MSB-aligned within words
+// so discard every 3rd byte
 fn cmd_handle_rreg(pkt: &[u8], addr: u8, count: u8) {
-    for i in 0..count {
-        let a = addr + i;
-        let start = (i as usize) * 2;
-        let end = start + 2;
-        if end > pkt.len() {
-            ::log::warn!("incomplete data for reg {:02x}", a);
-            break;
-        }
-        let bytes = &pkt[start..end];
 
-        match a {
-            0x01 => {
-                let val = regs::Status::from_bytes(bytes);
-                ::log::info!("STATUS: {:?}", val);
-            }
-            0x02 => {
-                let val = regs::Mode::from_bytes(bytes);
-                ::log::info!("MODE: {:?}", val);
-            }
-            0x03 => {
-                let val = regs::Clock::from_bytes(bytes);
-                ::log::info!("CLOCK: {:?}", val);
-            }
-            0x04 | 0x05 => {
-                let val = regs::Gain::from_bytes(bytes);
-                ::log::info!("GAIN{}: {:?}", a - 3, val); // 1 or 2
-            }
-            0x06 => {
-                let val = regs::Cfg::from_bytes(bytes);
-                ::log::info!("CFG: {:?}", val);
-            }
-            0x00 => {
-                ::log::info!("ID: 0x{:02x}{:02x}", bytes[0], bytes[1]);
-            }
-            _ => {
-                ::log::info!("REG {:02x}: 0x{:02x}{:02x}", a, bytes[0], bytes[1]);
-            }
-        }
-    }
+    ::log::info!("{:02x} {:02x} {:02x}", pkt[0], pkt[1], pkt[2]);
+    //let x = pkt;
+    //    ::log::info!("{:02x} {:02x} {:02x}\n{:08b} {:08b} {:08b}\n{:08b} {:08b} {:08b}\n{:08b} {:08b} {:08b}\n{:08b} {:08b} {:08b}\n{:08b} {:08b} {:08b}\n{:08b} {:08b} {:08b}\n{:08b} {:08b} {:08b}\n{:08b} {:08b} {:08b}\n{:08b} {:08b} {:08b}\n",
+    //        x[0], x[1], x[2],
+    //        x[3], x[4], x[5],
+    //        x[6], x[7], x[8],
+    //        x[9], x[10], x[11],
+    //        x[12], x[13], x[14],
+    //        x[15], x[16], x[17],
+    //        x[18], x[19], x[20],
+    //        x[21], x[22], x[23],
+    //        x[24], x[25], x[26],
+    //        x[27], x[28], x[29]
+    //        );
 }
+
 
 #[bsp::rt::entry]
 fn main() -> ! {
@@ -306,7 +293,7 @@ fn main() -> ! {
     // ADS131 docs want 10 24-bit words
     // but I can't set the word size to 24 here (there is no u24 type)
     // words in SPI are not delimited
-    // so let's read 15 24-bit words and reshuffle them later???
+    // so let's read 30 8-bit words and reshuffle them later???
     let mut pkt: [u8; FRAME_LEN] = [0; FRAME_LEN];
     let mut drdy_prev = false;
 
@@ -324,14 +311,21 @@ fn main() -> ! {
     // now we know there will be exactly 1 new frame for each DRDY edge
 
     // Define cmds as an ArrayVec of Command with a capacity of 8
-    let mut cmds: ArrayVec<Command, 8> = ArrayVec::new();
+    let mut cmds: ArrayVec<Command, 128> = ArrayVec::new();
     cmds.push(Command::Null);
-
     // Call run_cmd once before the loop
     //run_cmd(&mut cmds, &mut pkt, &mut lpspi4, 0);
 
+    let mut it : u32 = 1;
     loop {
+        //if (it % 100 == 0) {
+        //    for addr in 0..63 {
+        //        cmds.push(Command::RReg{addr, count: 0});
+        //    }
+        //    it += 1;
+        //}
         if !drdy_prev && drdy.is_low().unwrap() {
+            it += 1;
             // pit1 counts down not up, so we invert to get timer value
             let micros: u32 = !pit1.current_timer_value();
             drdy_prev = true;
